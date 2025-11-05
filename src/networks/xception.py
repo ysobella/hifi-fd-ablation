@@ -105,7 +105,8 @@ class Block(nn.Module):
         else:
             skip = inp
 
-        x += skip
+        # Changed from in-place addition to avoid gradient computation issues
+        x = x + skip
         return x
 
 

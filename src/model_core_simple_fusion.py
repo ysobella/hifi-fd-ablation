@@ -55,11 +55,13 @@ class Simple_Fusion_Two_Stream_Net(nn.Module):
         srm = self.srm_conv0(x)
         
         x = self.xception_rgb.model.fea_part1_0(x)
-        y = self.xception_srm.model.fea_part1_0(srm) + self.srm_conv1(x)
+        # Clone x to avoid in-place operation issues when x is used in multiple paths
+        y = self.xception_srm.model.fea_part1_0(srm) + self.srm_conv1(x.clone())
         y = self.relu(y)
         
         x = self.xception_rgb.model.fea_part1_1(x)
-        y = self.xception_srm.model.fea_part1_1(y) + self.srm_conv2(x)
+        # Clone x to avoid in-place operation issues when x is used in multiple paths
+        y = self.xception_srm.model.fea_part1_1(y) + self.srm_conv2(x.clone())
         y = self.relu(y)
         
         x = self.xception_rgb.model.fea_part2(x)
@@ -75,7 +77,8 @@ class Simple_Fusion_Two_Stream_Net(nn.Module):
         y = self.xception_srm.model.fea_part5(y)
         
         # Simple concatenation fusion
-        fea = torch.cat([x, y], dim=1)
+        # Clone to avoid in-place operation issues from Xception blocks
+        fea = torch.cat([x.clone(), y.clone()], dim=1)
         fea = self.fusion_conv(fea)
         
         return fea
