@@ -315,8 +315,20 @@ class TransferModel(nn.Module):
                     # Load model in torch 0.4+
                     model.fc = model.last_linear
                     del model.last_linear
-                    state_dict = torch.load(
-                        PRETAINED_WEIGHT_PATH)
+                    
+                    # Check if checkpoint exists, if not download it
+                    if not os.path.exists(PRETAINED_WEIGHT_PATH):
+                        print(f"Checkpoint not found at {PRETAINED_WEIGHT_PATH}")
+                        print("Downloading pretrained weights from URL...")
+                        settings = pretrained_settings['xception']['imagenet']
+                        state_dict = model_zoo.load_url(settings['url'], map_location='cpu')
+                        # Save the downloaded weights for future use
+                        os.makedirs(os.path.dirname(PRETAINED_WEIGHT_PATH), exist_ok=True)
+                        torch.save(state_dict, PRETAINED_WEIGHT_PATH)
+                        print(f"Saved checkpoint to {PRETAINED_WEIGHT_PATH}")
+                    else:
+                        state_dict = torch.load(PRETAINED_WEIGHT_PATH, map_location='cpu')
+                    
                     for name, weights in state_dict.items():
                         if 'pointwise' in name:
                             state_dict[name] = weights.unsqueeze(
