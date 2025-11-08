@@ -64,7 +64,7 @@ class Block(nn.Module):
         else:
             self.skip = None
 
-        self.relu = nn.ReLU(inplace=True)
+        self.relu = nn.ReLU(inplace=False)
         rep = []
 
         filters = in_filters
@@ -132,7 +132,7 @@ class Xception(nn.Module):
         # Entry flow
         self.conv1 = nn.Conv2d(inc, 32, 3, 2, 0, bias=False)
         self.bn1 = nn.BatchNorm2d(32)
-        self.relu = nn.ReLU(inplace=True)
+        self.relu = nn.ReLU(inplace=False)
 
         self.conv2 = nn.Conv2d(32, 64, 3, bias=False)
         self.bn2 = nn.BatchNorm2d(64)

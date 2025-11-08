@@ -20,6 +20,42 @@ from model_core_simple_fusion import Simple_Fusion_Two_Stream_Net
 from model_core_sum_fusion import Sum_Fusion_Two_Stream_Net
 
 
+def find_checkpoint_path(model_dir, variant):
+    """
+    Find checkpoint path for a given variant, checking multiple possible locations.
+    
+    Args:
+        model_dir (str): Base directory containing model checkpoints.
+        variant (str): Model variant name.
+        
+    Returns:
+        str or None: Path to checkpoint if found, None otherwise.
+    """
+    # Mapping of variants to experiment directory patterns
+    variant_to_exp = {
+        'full': ['exp1_full', 'full'],
+        'rgb_only': ['exp2_rgb_only', 'rgb_only'],
+        'srm_only': ['exp3_srm_only', 'srm_only'],
+        'simple_fusion': ['exp4_simple_fusion', 'simple_fusion'],
+        'sum_fusion': ['exp5_sum_fusion', 'sum_fusion']
+    }
+    
+    # Try different possible directory names
+    possible_dirs = variant_to_exp.get(variant, [variant])
+    
+    for dir_name in possible_dirs:
+        checkpoint_path = os.path.join(model_dir, dir_name, 'best_model.pth')
+        if os.path.exists(checkpoint_path):
+            return checkpoint_path
+    
+    # If not found in subdirectories, try direct path
+    direct_path = os.path.join(model_dir, f'{variant}_best_model.pth')
+    if os.path.exists(direct_path):
+        return direct_path
+    
+    return None
+
+
 def get_model(model_type, checkpoint_path=None):
     """
     Load the appropriate model variant.
@@ -47,7 +83,18 @@ def get_model(model_type, checkpoint_path=None):
     
     # Load checkpoint if provided
     if checkpoint_path and os.path.exists(checkpoint_path):
-        model.load_state_dict(torch.load(checkpoint_path, map_location='cpu'))
+        checkpoint = torch.load(checkpoint_path, map_location='cpu')
+        # Handle different checkpoint formats
+        if isinstance(checkpoint, dict):
+            if 'state_dict' in checkpoint:
+                model.load_state_dict(checkpoint['state_dict'], strict=False)
+            elif 'model' in checkpoint:
+                model.load_state_dict(checkpoint['model'], strict=False)
+            else:
+                # Assume it's the state dict directly
+                model.load_state_dict(checkpoint, strict=False)
+        else:
+            model.load_state_dict(checkpoint, strict=False)
     
     model.eval()
     return model
@@ -140,10 +187,10 @@ def visualize_single_image(image_path, model_dir, output_dir, device):
     # Get predictions from all variants
     results = {}
     for i, variant in enumerate(variants):
-        checkpoint_path = os.path.join(model_dir, variant, 'best_model.pth')
+        checkpoint_path = find_checkpoint_path(model_dir, variant)
         
         # Skip if checkpoint doesn't exist
-        if not os.path.exists(checkpoint_path):
+        if checkpoint_path is None:
             print(f"Warning: No checkpoint found for {variant}")
             continue
         
